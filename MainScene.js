@@ -17,6 +17,8 @@ class MainScene extends Phaser.Scene {
      * Calls all the requisite setup functions for the game to make all elements.
      */
 	create() {
+        // Reset the data to initial values.
+        this.resetData();
         // Setup the data for the game.
         this.setupData();
         // Create the grid, with all its numbers.
@@ -29,6 +31,78 @@ class MainScene extends Phaser.Scene {
         this.makeParticles();
         gameState.cursors = this.input.keyboard.createCursorKeys();
 	}
+
+    /**
+     * Reset all non-constant values in gameState to their defaults.
+     */
+    resetData() {
+        gameState.lives = 3;
+        gameState.level = 1;
+        gameState.score = 0;
+        gameState.maxNumber = 50;
+        gameState.highScoreReached = false;
+    }
+
+    /**
+     * Sets the criteria number to a number between 2 and 5.
+     */
+     setupData() {
+        gameState.criteriaNum = parseInt((Math.random() * 3) + 2);
+    }
+
+    /**
+     * Create the 5x6 grid with each cell given a number, text, and 
+     * checks to see if it should be absorbed by the player.
+     */
+     makeGrid() {
+        // Create cells of a grid, store them in a grid, and give them the data that they need.
+        gameState.grid = [];
+        for (let x = 0; x < gameState.GRID_WIDTH; x++) {
+            gameState.grid[x] = [];
+            for (let y = 0; y < gameState.GRID_HEIGHT; y++) {
+                let newCell = this.add.sprite((x * (gameState.CELL_DIMS + gameState.PADDING)) + gameState.INIT_X, (y * (gameState.CELL_DIMS + gameState.PADDING)) + gameState.INIT_Y, 'cell');
+                newCell.number = parseInt((Math.random() * 50) + 1); // Number between 1 and 50
+                newCell.targetNumber = this.checkTargetNumber(newCell.number); // Whether number is a target number
+                newCell.absorbed = false; // Number has not been absorbed yet (since we just created it)
+                newCell.printNumber = newCell.number.toString(); // Number as a string.
+                gameState.grid[x][y] = newCell; // Add it to the grid.
+                newCell.print = this.add.text(newCell.x-10, newCell.y-10, newCell.printNumber, {
+                    align: "center",
+                    font: gameState.INFO_FONT,
+                    fill: '#000000'
+                });
+                // console.log("Number at: (" + x + ", " + y + "): " + newCell.number);
+            }
+        }
+    }
+
+    /**
+     * Creates the player and gives them initial grid coordinates gx and gy.
+     */
+    makePlayer() {
+        gameState.player = this.add.sprite(gameState.grid[2][2].x, gameState.grid[2][2].y, 'player');
+        // Define the player's grid X and grid Y coordinates
+        gameState.player.gx = 2;
+        gameState.player.gy = 2;
+    }
+
+    /**
+     * Create the piece of UI text to display the criteria.
+     */
+    makeUI() {
+        gameState.criteriaText = this.add.text(gameState.CENTER_X, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
+            font: gameState.INFO_FONT,
+            fill: '#00ffff'
+        }).setOrigin(0.5);
+        gameState.creditsText = this.add.text(192, 684, `Created by Jon So, 2021`, {
+            font: gameState.DECO_FONT,
+            fill: '#ffffff'
+        });
+        gameState.scoreText = this.add.text(gameState.CENTER_X, 36, `${gameState.score}`, {
+            font: gameState.SCORE_FONT,
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+    }
 
     /**
      * Create the particle and particle emitter for when the player
@@ -51,46 +125,10 @@ class MainScene extends Phaser.Scene {
     }
 
     /**
-     * Sets the criteria number to a number between 2 and 5.
+     * Quickly shake the screen.
      */
-    setupData() {
-        gameState.criteriaNum = parseInt((Math.random() * 3) + 2);
-    }
-
-    /**
-     * Creates the player and gives them initial grid coordinates gx and gy.
-     */
-    makePlayer() {
-        gameState.player = this.add.sprite(gameState.grid[2][2].x, gameState.grid[2][2].y, 'player');
-        // Define the player's grid X and grid Y coordinates
-        gameState.player.gx = 2;
-        gameState.player.gy = 2;
-    }
-
-    /**
-     * Create the 5x6 grid with each cell given a number, text, and 
-     * checks to see if it should be absorbed by the player.
-     */
-    makeGrid() {
-        // Create cells of a grid, store them in a grid, and give them the data that they need.
-        gameState.grid = [];
-        for (let x = 0; x < gameState.GRID_WIDTH; x++) {
-            gameState.grid[x] = [];
-            for (let y = 0; y < gameState.GRID_HEIGHT; y++) {
-                let newCell = this.add.sprite((x * (gameState.CELL_DIMS + gameState.PADDING)) + gameState.INIT_X, (y * (gameState.CELL_DIMS + gameState.PADDING)) + gameState.INIT_Y, 'cell');
-                newCell.number = parseInt((Math.random() * 50) + 1); // Number between 1 and 50
-                newCell.targetNumber = this.checkTargetNumber(newCell.number); // Whether number is a target number
-                newCell.absorbed = false; // Number has not been absorbed yet (since we just created it)
-                newCell.printNumber = newCell.number.toString(); // Number as a string.
-                gameState.grid[x][y] = newCell; // Add it to the grid.
-                newCell.print = this.add.text(newCell.x-9, newCell.y-9, newCell.printNumber, {
-                    align: "center",
-                    font: gameState.INFO_FONT,
-                    fill: '#000000'
-                });
-                // console.log("Number at: (" + x + ", " + y + "): " + newCell.number);
-            }
-        }
+    screenShake() {
+        this.cameras.main.shake(50, 0.01, true);
     }
 
     /**
@@ -105,7 +143,7 @@ class MainScene extends Phaser.Scene {
                 gameState.grid[x][y].targetNumber = this.checkTargetNumber(gameState.grid[x][y].number);
                 gameState.grid[x][y].absorbed = false;
                 gameState.grid[x][y].printNumber = gameState.grid[x][y].number.toString();
-                gameState.grid[x][y].print = this.add.text(gameState.grid[x][y].x-9, gameState.grid[x][y].y-9, gameState.grid[x][y].printNumber, {
+                gameState.grid[x][y].print = this.add.text(gameState.grid[x][y].x-10, gameState.grid[x][y].y-10, gameState.grid[x][y].printNumber, {
                     align: "center",
                     font: gameState.INFO_FONT,
                     fill: '#000000'
@@ -122,25 +160,11 @@ class MainScene extends Phaser.Scene {
         if (gameState.criteriaText) { // If criteria text already exists...
             gameState.criteriaText.setText(`MULTIPLES OF ${gameState.criteriaNum}`);
         } else { // Otherwise, create it.
-            gameState.criteriaText = this.add.text(128, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
+            gameState.criteriaText = this.add.text(gameState.CENTER_X, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
                 font: gameState.INFO_FONT,
                 fill: '#00ffff'
-            });
+            }).setOrigin(0.5);
         }
-    }
-
-    /**
-     * Create the piece of UI text to display the criteria.
-     */
-    makeUI() {
-        gameState.criteriaText = this.add.text(128, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
-            font: gameState.INFO_FONT,
-            fill: '#00ffff'
-        });
-        gameState.creditsText = this.add.text(192, 684, `Created by Jon So, 2021`, {
-            font: gameState.DECO_FONT,
-            fill: '#ffffff'
-        });
     }
 
     /**
@@ -214,6 +238,10 @@ class MainScene extends Phaser.Scene {
     absorbNumber() {
         let gridSpace = gameState.grid[gameState.player.gx][gameState.player.gy];
         if (gridSpace.targetNumber) {
+            // Don't do anything if number's already been absorbed
+            if (gridSpace.absorbed) { return; }
+            gameState.score += 10;
+            gameState.scoreText.setText(`${gameState.score}`);
             // Play particle FX
             gameState.emitter.explode(8, gameState.player.x, gameState.player.y);
             gridSpace.absorbed = true;
@@ -225,14 +253,31 @@ class MainScene extends Phaser.Scene {
             }
         } else { // Wrong number
             gameState.lives--;
+            this.screenShake();
             this.gameOverCheck();
         }
     }
 
     gameOverCheck() {
         if (gameState.lives <= 0) {
+            this.hiScoreCheckAndSave();
             this.scene.stop('MainScene');
 			this.scene.start('GameOverScene');
+        }
+    }
+
+    /**
+     * Checks to see if the player has reached a high score, and if so,
+     * save their high score and highest level (and set a bool to tell 
+     * GameOverScene that a high score has been reached.)
+     */
+    hiScoreCheckAndSave() {
+        if (gameState.score > localStorage.getItem(gameState.LS_HISCORE_KEY)) {
+            localStorage.setItem(gameState.LS_HISCORE_KEY, gameState.score);
+            gameState.highScoreReached = true;
+        }
+        if (gameState.level > localStorage.getItem(gameState.LS_HILEVEL_KEY)) {
+            localStorage.setItem(gameState.LS_HILEVEL_KEY, gameState.level);
         }
     }
 
