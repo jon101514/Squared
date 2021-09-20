@@ -10,6 +10,7 @@ class MainScene extends Phaser.Scene {
 		// Load the sprites.
         this.load.image('player', 'assets/player.png');
         this.load.image('cell', 'assets/cell.png');
+        this.load.image('spark', 'assets/spark.png');
 	}
 
     /**
@@ -24,8 +25,30 @@ class MainScene extends Phaser.Scene {
         this.makePlayer();
         // Create the UI.
         this.makeUI();
+        // Create particle emitter.
+        this.makeParticles();
         gameState.cursors = this.input.keyboard.createCursorKeys();
 	}
+
+    /**
+     * Create the particle and particle emitter for when the player
+     * successfully absorbs a number.
+     */
+    makeParticles() {
+        gameState.particles = this.add.particles('spark');
+        gameState.emitter = gameState.particles.createEmitter({ 	
+            x: gameState.player.x,
+            y: gameState.player.y,
+            lifespan: 256,
+            speedX: {min: -512, max: 512},
+            speedY: {min: -512, max: 512},
+            scale: {start: 4, end: 0},
+            tint: [0xff00ff, 0x00ffff],
+            quantity: 8,
+            blendMode: 'ADD'
+        }); 
+        gameState.emitter.explode(8, gameState.player.x, gameState.player.y);
+    }
 
     /**
      * Sets the criteria number to a number between 2 and 5.
@@ -61,7 +84,8 @@ class MainScene extends Phaser.Scene {
                 newCell.printNumber = newCell.number.toString(); // Number as a string.
                 gameState.grid[x][y] = newCell; // Add it to the grid.
                 newCell.print = this.add.text(newCell.x-9, newCell.y-9, newCell.printNumber, {
-                    fontSize: '18px',
+                    align: "center",
+                    font: gameState.INFO_FONT,
                     fill: '#000000'
                 });
                 // console.log("Number at: (" + x + ", " + y + "): " + newCell.number);
@@ -82,7 +106,8 @@ class MainScene extends Phaser.Scene {
                 gameState.grid[x][y].absorbed = false;
                 gameState.grid[x][y].printNumber = gameState.grid[x][y].number.toString();
                 gameState.grid[x][y].print = this.add.text(gameState.grid[x][y].x-9, gameState.grid[x][y].y-9, gameState.grid[x][y].printNumber, {
-                    fontSize: '18px',
+                    align: "center",
+                    font: gameState.INFO_FONT,
                     fill: '#000000'
                 });
             }
@@ -95,10 +120,10 @@ class MainScene extends Phaser.Scene {
     setCriteria() {
         gameState.criteriaNum = parseInt((Math.random() * 3) + 2);
         if (gameState.criteriaText) { // If criteria text already exists...
-            gameState.criteriaText.setText(`Multiples of ${gameState.criteriaNum}`);
+            gameState.criteriaText.setText(`MULTIPLES OF ${gameState.criteriaNum}`);
         } else { // Otherwise, create it.
-            gameState.criteriaText = this.add.text(128, 72, `Multiples of ${gameState.criteriaNum}`, {
-                fontSize: '18px',
+            gameState.criteriaText = this.add.text(128, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
+                font: gameState.INFO_FONT,
                 fill: '#00ffff'
             });
         }
@@ -108,12 +133,12 @@ class MainScene extends Phaser.Scene {
      * Create the piece of UI text to display the criteria.
      */
     makeUI() {
-        gameState.criteriaText = this.add.text(128, 72, `Multiples of ${gameState.criteriaNum}`, {
-            fontSize: '18px',
+        gameState.criteriaText = this.add.text(128, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
+            font: gameState.INFO_FONT,
             fill: '#00ffff'
         });
-        gameState.creditsText = this.add.text(256, 700, `Created by Jon So, 2021`, {
-            fontSize: '12px',
+        gameState.creditsText = this.add.text(192, 684, `Created by Jon So, 2021`, {
+            font: gameState.DECO_FONT,
             fill: '#ffffff'
         });
     }
@@ -189,6 +214,8 @@ class MainScene extends Phaser.Scene {
     absorbNumber() {
         let gridSpace = gameState.grid[gameState.player.gx][gameState.player.gy];
         if (gridSpace.targetNumber) {
+            // Play particle FX
+            gameState.emitter.explode(8, gameState.player.x, gameState.player.y);
             gridSpace.absorbed = true;
             gridSpace.print.destroy();
             if (this.isLevelComplete()) {
@@ -196,9 +223,16 @@ class MainScene extends Phaser.Scene {
                 this.setCriteria();
                 this.resetGrid();
             }
-        } else {
-            this.setCriteria();
-            this.resetGrid();
+        } else { // Wrong number
+            gameState.lives--;
+            this.gameOverCheck();
+        }
+    }
+
+    gameOverCheck() {
+        if (gameState.lives <= 0) {
+            this.scene.stop('MainScene');
+			this.scene.start('GameOverScene');
         }
     }
 

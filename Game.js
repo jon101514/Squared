@@ -1,4 +1,5 @@
 const gameState = {
+	lives: 3,
 	score: 0,
 	maxNumber: 50,
 	// CONSTANT
@@ -6,8 +7,11 @@ const gameState = {
     GRID_HEIGHT: 6,
 	CELL_DIMS: 64,
 	PADDING: 2,
-	INIT_X: 100,
-	INIT_Y: 128
+	INIT_X: 108,
+	INIT_Y: 160,
+	DECO_FONT: "24px Helvetica",
+	INFO_FONT: "18px Verdana"
+
 };
 
 
@@ -24,7 +28,7 @@ const config = {
 			enableBody: true,
 		}
 	},
-	scene: [MainScene]
+	scene: [StartScene, MainScene, GameOverScene]
 };
 
 const game = new Phaser.Game(config);
