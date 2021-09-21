@@ -3,14 +3,37 @@ class StartScene extends Phaser.Scene {
 		super({ key: 'StartScene' })
 	}
 
+	preload() {
+		this.load.image('logo', 'assets/logo.png');
+	}
+
+	/**
+	 * Setup the center of the screen as well as initialization of hi scores,
+	 * then create a logo, credits, and start prompt.
+	 */
 	create() {
 		this.calcCenterCoordinates();
 		this.initializeLocalStorage();
-		this.add.text( 150, 250, 'Click to start!', {fill: '#ffffff', fontSize: '20px'})
-		this.input.on('pointerdown', () => {
-			this.scene.stop('StartScene')
-			this.scene.start('MainScene')
-		})
+		this.add.image(gameState.CENTER_X, gameState.CENTER_Y / 2, 'logo').setOrigin(0.5);
+		this.add.text(gameState.CENTER_X, gameState.CENTER_Y, `SPACE TO START`, {
+			font: gameState.INFO_FONT,
+            fill: '#00ffff'
+        }).setOrigin(0.5);
+		gameState.creditsText = this.add.text(192, 684, `Created by Jon So, 2021`, {
+            font: gameState.DECO_FONT,
+            fill: '#ffffff'
+        });
+		gameState.cursors = this.input.keyboard.createCursorKeys(); // To take input to start
+	}
+
+	/**
+	 * Handle pressing space to begin playing.
+	 */
+	update() {
+		if (Phaser.Input.Keyboard.JustDown(gameState.cursors.space)) {
+			this.scene.stop('StartScene');
+			this.scene.start('MainScene');
+		}
 	}
 
 	/**

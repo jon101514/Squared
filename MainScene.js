@@ -11,6 +11,7 @@ class MainScene extends Phaser.Scene {
         this.load.image('player', 'assets/player.png');
         this.load.image('cell', 'assets/cell.png');
         this.load.image('spark', 'assets/spark.png');
+        this.load.image('life', 'assets/life.png');
 	}
 
     /**
@@ -41,6 +42,7 @@ class MainScene extends Phaser.Scene {
         gameState.score = 0;
         gameState.maxNumber = 50;
         gameState.highScoreReached = false;
+        gameState.colorFlavorIndex = 0;
     }
 
     /**
@@ -90,7 +92,7 @@ class MainScene extends Phaser.Scene {
      * Create the piece of UI text to display the criteria.
      */
     makeUI() {
-        gameState.criteriaText = this.add.text(gameState.CENTER_X, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
+        gameState.criteriaText = this.add.text(gameState.CENTER_X, gameState.CRITERIA_HEIGHT, `MULTIPLES OF ${gameState.criteriaNum}`, {
             font: gameState.INFO_FONT,
             fill: '#00ffff'
         }).setOrigin(0.5);
@@ -98,10 +100,30 @@ class MainScene extends Phaser.Scene {
             font: gameState.DECO_FONT,
             fill: '#ffffff'
         });
-        gameState.scoreText = this.add.text(gameState.CENTER_X, 36, `${gameState.score}`, {
+        gameState.scoreText = this.add.text(gameState.CENTER_X, gameState.SCORE_HEIGHT, `${gameState.score}`, {
             font: gameState.SCORE_FONT,
             fill: '#ffffff'
         }).setOrigin(0.5);
+        gameState.levelText = this.add.text(3 * gameState.CENTER_X / 2, 3 * gameState.CENTER_Y / 2, `LV. ${gameState.level}: ${gameState.FLAVORS[gameState.colorFlavorIndex]}`, {
+            font: gameState.INFO_FONT,
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+        gameState.levelText.setTint(gameState.COLOR_HEXS[gameState.colorFlavorIndex]);
+        this.setupLivesDisplay();
+    }
+
+    setupLivesDisplay() {
+        if (!gameState.livesDisplay) {
+            gameState.livesDisplay = [gameState.lives - 1];
+        } else {
+            console.log("Lives display is: " + gameState.livesDisplay.length);
+            for (let i = 0; i < gameState.livesDisplay.length; i++) {
+                gameState.livesDisplay[i].destroy();;
+            }
+        }
+        for (let i = 0; i < gameState.lives - 1; i++) {
+            gameState.livesDisplay[i] = this.add.sprite(gameState.INIT_X + (i * 32) + 2, 3 * gameState.CENTER_Y / 2, 'life').setOrigin(0.5);
+        }
     }
 
     /**
@@ -121,14 +143,7 @@ class MainScene extends Phaser.Scene {
             quantity: 8,
             blendMode: 'ADD'
         }); 
-        gameState.emitter.explode(8, gameState.player.x, gameState.player.y);
-    }
-
-    /**
-     * Quickly shake the screen.
-     */
-    screenShake() {
-        this.cameras.main.shake(50, 0.01, true);
+        gameState.emitter.explode(0, gameState.player.x, gameState.player.y);
     }
 
     /**
@@ -160,7 +175,7 @@ class MainScene extends Phaser.Scene {
         if (gameState.criteriaText) { // If criteria text already exists...
             gameState.criteriaText.setText(`MULTIPLES OF ${gameState.criteriaNum}`);
         } else { // Otherwise, create it.
-            gameState.criteriaText = this.add.text(gameState.CENTER_X, 72, `MULTIPLES OF ${gameState.criteriaNum}`, {
+            gameState.criteriaText = this.add.text(gameState.CENTER_X, gameState.CRITERIA_HEIGHT, `MULTIPLES OF ${gameState.criteriaNum}`, {
                 font: gameState.INFO_FONT,
                 fill: '#00ffff'
             }).setOrigin(0.5);
@@ -247,17 +262,64 @@ class MainScene extends Phaser.Scene {
             gridSpace.absorbed = true;
             gridSpace.print.destroy();
             if (this.isLevelComplete()) {
-                console.log("YOU WIN!");
-                this.setCriteria();
-                this.resetGrid();
+                this.levelUp();
             }
         } else { // Wrong number
             gameState.lives--;
+            this.setupLivesDisplay();
             this.screenShake();
             this.gameOverCheck();
         }
     }
 
+    /**
+     * Checks to see if there are any more targetNumbers left to absorb on the grid.
+     * @returns a bool saying whether or not the level is complete.
+     */
+    isLevelComplete() {
+        let gridSpace;
+        for (let x = 0; x < gameState.GRID_WIDTH; x++) {
+            for (let y = 0; y < gameState.GRID_HEIGHT; y++) {
+                gridSpace = gameState.grid[x][y];
+                if (gridSpace.targetNumber && !gridSpace.absorbed) {
+                    console.log("Get the " + gridSpace.number + " at (" + x + ", " + y + ")");
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Increase the level, update the UI, and set a new criteria/grid.
+     */
+     levelUp() {
+        gameState.level++;
+        gameState.colorFlavorIndex++;
+        gameState.levelText.setText(`LV. ${gameState.level}: ${gameState.FLAVORS[gameState.colorFlavorIndex]}`);
+        gameState.levelText.setTint(gameState.COLOR_HEXS[gameState.colorFlavorIndex]);
+        this.levelUpDifficulty();
+        this.resetGrid();
+    }
+
+    /**
+     * Make the criteria (usually) more difficulty upon a level up.
+     */
+    levelUpDifficulty() {
+        gameState.maxNumber += 5; // Increase the maximum number found in a cell.
+        this.setCriteria();
+    }
+
+    /**
+     * Quickly shake the screen.
+     */
+    screenShake() {
+        this.cameras.main.shake(50, 0.01, true);
+    }
+
+    /**
+     * If the player's run out of lives, then check for hi scores and load Game Over scene.
+     */
     gameOverCheck() {
         if (gameState.lives <= 0) {
             this.hiScoreCheckAndSave();
@@ -279,23 +341,5 @@ class MainScene extends Phaser.Scene {
         if (gameState.level > localStorage.getItem(gameState.LS_HILEVEL_KEY)) {
             localStorage.setItem(gameState.LS_HILEVEL_KEY, gameState.level);
         }
-    }
-
-    /**
-     * Checks to see if there are any more targetNumbers left to absorb on the grid.
-     * @returns a bool saying whether or not the level is complete.
-     */
-    isLevelComplete() {
-        let gridSpace;
-        for (let x = 0; x < gameState.GRID_WIDTH; x++) {
-            for (let y = 0; y < gameState.GRID_HEIGHT; y++) {
-                gridSpace = gameState.grid[x][y];
-                if (gridSpace.targetNumber && !gridSpace.absorbed) {
-                    console.log("Get the " + gridSpace.number + " at (" + x + ", " + y + ")");
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 }
