@@ -40,15 +40,19 @@ class MainScene extends Phaser.Scene {
         gameState.lives = 3;
         gameState.level = 1;
         gameState.score = 0;
+        gameState.minNumber = 1;
         gameState.maxNumber = 50;
+        gameState.expressNum = 5;
         gameState.highScoreReached = false;
         gameState.colorFlavorIndex = 0;
+        gameState.currentLevelType = levelType.MULTIPLE;
+        gameState.expressionsMode = expressions.OFF;
     }
 
     /**
-     * Sets the criteria number to a number between 2 and 5.
+     * Only for Level 1, sets the criteria number to be between a specified min/max and also may modify said numbers.
      */
-     setupData() {
+    setupData() {
         gameState.criteriaNum = parseInt((Math.random() * 3) + 2);
     }
 
@@ -63,7 +67,7 @@ class MainScene extends Phaser.Scene {
             gameState.grid[x] = [];
             for (let y = 0; y < gameState.GRID_HEIGHT; y++) {
                 let newCell = this.add.sprite((x * (gameState.CELL_DIMS + gameState.PADDING)) + gameState.INIT_X, (y * (gameState.CELL_DIMS + gameState.PADDING)) + gameState.INIT_Y, 'cell');
-                newCell.number = parseInt((Math.random() * 50) + 1); // Number between 1 and 50
+                newCell.number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber); // Number between min and maxNumber
                 newCell.targetNumber = this.checkTargetNumber(newCell.number); // Whether number is a target number
                 newCell.absorbed = false; // Number has not been absorbed yet (since we just created it)
                 newCell.printNumber = newCell.number.toString(); // Number as a string.
@@ -90,6 +94,7 @@ class MainScene extends Phaser.Scene {
 
     /**
      * Create the piece of UI text to display the criteria.
+     * PRECONDITION: This is for Level 1, which is always a MULTIPLE stage.
      */
     makeUI() {
         gameState.criteriaText = this.add.text(gameState.CENTER_X, gameState.CRITERIA_HEIGHT, `MULTIPLES OF ${gameState.criteriaNum}`, {
@@ -153,49 +158,230 @@ class MainScene extends Phaser.Scene {
     resetGrid() {
         for (let x = 0; x < gameState.GRID_WIDTH; x++) {
             for (let y = 0; y < gameState.GRID_HEIGHT; y++) {
-                gameState.grid[x][y].print.destroy();
-                gameState.grid[x][y].number = parseInt((Math.random() * gameState.maxNumber) + 1);
-                gameState.grid[x][y].targetNumber = this.checkTargetNumber(gameState.grid[x][y].number);
-                gameState.grid[x][y].absorbed = false;
-                gameState.grid[x][y].printNumber = gameState.grid[x][y].number.toString();
-                gameState.grid[x][y].print = this.add.text(gameState.grid[x][y].x-10, gameState.grid[x][y].y-10, gameState.grid[x][y].printNumber, {
+                // gameState.grid[x][y].print.destroy();
+
+                // if (gameState.currentLevelType == levelType.EQUALITY) {
+                //     let rand = Math.random();
+                //     if (rand < gameState.MIN_GRID_THRESHOLD) {
+                //         gameState.grid[x][y].number = gameState.criteriaNum;
+                //         gameState.grid[x][y].targetNumber = this.checkTargetNumber(gameState.grid[x][y].number);
+                //     } else {
+                //         gameState.grid[x][y].number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber);
+                //         gameState.grid[x][y].targetNumber = this.checkTargetNumber(gameState.grid[x][y].number);
+                //     }
+                // } else {
+                //     gameState.grid[x][y].number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber);
+                //     gameState.grid[x][y].targetNumber = this.checkTargetNumber(gameState.grid[x][y].number);
+                // }
+
+
+                // gameState.grid[x][y].absorbed = false;
+                // // Should the number inside the grid be an expression?
+                // switch (gameState.expressionsMode) {
+                //     case expressions.ON:
+                //         gameState.grid[x][y].printNumber = this.generateExpression(gameState.grid[x][y].number);
+                //         gameState.grid[x][y].print = this.add.text(gameState.grid[x][y].x-32, gameState.grid[x][y].y-10, gameState.grid[x][y].printNumber, {
+                //             align: "center",
+                //             font: gameState.INFO_SMALL_FONT,
+                //             fill: '#000000'
+                //         });
+                //         break;
+                //     case expressions.MIXED:
+                //     case expressions.OFF:
+                //     default:
+                //         gameState.grid[x][y].printNumber = gameState.grid[x][y].number.toString();
+                //         gameState.grid[x][y].print = this.add.text(gameState.grid[x][y].x-10, gameState.grid[x][y].y-10, gameState.grid[x][y].printNumber, {
+                //             align: "center",
+                //             font: gameState.INFO_FONT,
+                //             fill: '#000000'
+                //         });
+                //         break;
+                // }
+                this.resetGridSpace(gameState.grid[x][y]);
+            }
+        }
+        this.checkGridThreshold();
+    }
+
+    resetGridSpace(cell, forceTarget = false) {
+        cell.print.destroy();
+
+        if (gameState.currentLevelType == levelType.EQUALITY) {
+            let rand = Math.random();
+            if (rand < gameState.MIN_GRID_THRESHOLD) {
+                cell.number = gameState.criteriaNum;
+                cell.targetNumber = this.checkTargetNumber(cell.number);
+            } else {
+                cell.number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber);
+                cell.targetNumber = this.checkTargetNumber(cell.number);
+            }
+        } else {
+            cell.number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber);
+            cell.targetNumber = this.checkTargetNumber(cell.number);
+        }
+
+        while (forceTarget && !cell.targetNumber) {
+            cell.number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber);
+            cell.targetNumber = this.checkTargetNumber(cell.number);
+        }
+
+
+        cell.absorbed = false;
+        // Should the number inside the grid be an expression?
+        switch (gameState.expressionsMode) {
+            case expressions.ON:
+                cell.printNumber = this.generateExpression(cell.number);
+                cell.print = this.add.text(cell.x-32, cell.y-10, cell.printNumber, {
+                    align: "center",
+                    font: gameState.INFO_SMALL_FONT,
+                    fill: '#000000'
+                });
+                break;
+            case expressions.MIXED:
+                let flip = Math.random() > 0.5 ? true : false; // coin flip 
+                if (flip) { // Give an expression.
+                    cell.printNumber = this.generateExpression(cell.number);
+                    cell.print = this.add.text(cell.x-32, cell.y-10, cell.printNumber, {
+                        align: "center",
+                        font: gameState.INFO_SMALL_FONT,
+                        fill: '#000000'
+                    });
+                    break;
+                } // otherwise, it'll fall thru to the 'off' case.
+            case expressions.OFF:
+            default:
+                cell.printNumber = cell.number.toString();
+                cell.print = this.add.text(cell.x-10, cell.y-10, cell.printNumber, {
                     align: "center",
                     font: gameState.INFO_FONT,
                     fill: '#000000'
                 });
+                break;
+        }
+    }
+
+    checkGridThreshold() {
+        let targNums = 0; // amount of target numbers
+        let nonNums = 0; // amount of non-target numbers
+        let nons = [];
+        for (let x = 0; x < gameState.GRID_WIDTH; x++) {
+            for (let y = 0; y < gameState.GRID_HEIGHT; y++) {
+                let current = gameState.grid[x][y];
+                if (current.targetNumber) { targNums++; }
+                else { 
+                    nons[nonNums] = gameState.grid[x][y];
+                    nonNums++; 
+                }
             }
         }
+        console.log("checkGridThreshold results: " + (targNums / (targNums + nonNums)).toString());
+        let percent = (targNums / (targNums + nonNums));
+        // Reroll the spaces that were non-target.
+        if (percent < gameState.MIN_GRID_THRESHOLD) {
+            for (let i = 0; i < nons.length; i++) {
+                if (Math.random() > 0.5) {
+                    this.resetGridSpace(nons[i], true);
+                    nonNums--;
+                    targNums++;
+                }
+            }
+        }
+        console.log("Reroll! results: " + (targNums / (targNums + nonNums)).toString());
+    }
+
+    generateExpression(n) {
+        // xType: below 1/4 is addition, below 1/2 is subtraction, below 3/4 is multiplication, else, division
+        let xType = Math.random(); 
+        let flip = Math.random() > 0.5 ? true : false; // coin flip to see if we have a mirrored expression
+        let rand = parseInt(Math.random() * gameState.expressNum);
+        let result = "";
+        if (xType < 1/2) { // Addition, where (rand) + (n - rand) or vice versa
+            if (flip) { result = (rand.toString() + ' + ' + (n - rand).toString()); }
+            else { result = ((n - rand).toString() + ' + ' + rand.toString()); }
+        } else if (xType < 1) { // Subtraction where (n + rand) - (rand)
+            result = ((n + rand).toString() + ' - ' + (rand).toString());
+        }
+        return result;
     }
 
     /** 
      * Sets the criteria number and updates the text to match.
      */
-    setCriteria() {
-        gameState.criteriaNum = parseInt((Math.random() * 3) + 2);
-        if (gameState.criteriaText) { // If criteria text already exists...
-            gameState.criteriaText.setText(`MULTIPLES OF ${gameState.criteriaNum}`);
-        } else { // Otherwise, create it.
-            gameState.criteriaText = this.add.text(gameState.CENTER_X, gameState.CRITERIA_HEIGHT, `MULTIPLES OF ${gameState.criteriaNum}`, {
-                font: gameState.INFO_FONT,
-                fill: '#00ffff'
-            }).setOrigin(0.5);
+    setCriteria(min, max, mixmode = false) {
+        // gameState.criteriaNum = parseInt((Math.random() * 3) + 2);
+        // if (gameState.criteriaText) { // If criteria text already exists...
+        //     gameState.criteriaText.setText(`MULTIPLES OF ${gameState.criteriaNum}`);
+        // } else { // Otherwise, create it.
+        //     gameState.criteriaText = this.add.text(gameState.CENTER_X, gameState.CRITERIA_HEIGHT, `MULTIPLES OF ${gameState.criteriaNum}`, {
+        //         font: gameState.INFO_FONT,
+        //         fill: '#00ffff'
+        //     }).setOrigin(0.5);
+        // }
+        switch (gameState.currentLevelType) {
+            case levelType.MULTIPLE:
+                gameState.expressionsMode = expressions.OFF;
+                gameState.criteriaNum = parseInt((Math.random() * (max - min)) + min);
+                gameState.criteriaText.setText(`MULTIPLES OF ${gameState.criteriaNum}`);
+                break;
+            case levelType.FACTOR:
+                gameState.expressionsMode = expressions.OFF;
+                gameState.criteriaNum = parseInt((Math.random() * (max - min)) + min);
+                gameState.criteriaText.setText(`FACTORS OF ${gameState.criteriaNum}`);
+                break;
+            case levelType.PRIME:
+                gameState.minNumber = 1;
+                gameState.expressionsMode = expressions.OFF;
+                gameState.criteriaText.setText(`PRIME NUMBERS`);
+                break;
+            case levelType.EQUALITY:
+                gameState.expressionsMode = expressions.ON;
+                gameState.criteriaNum = parseInt((Math.random() * (max - min)) + min);
+                gameState.criteriaText.setText(`EQUAL TO ${gameState.criteriaNum}`);
+                break;
+            case levelType.INEQUALITY:
+                gameState.expressionsMode = expressions.ON;
+                gameState.criteriaNum = parseInt((Math.random() * (max - min)) + min);
+                gameState.criteriaText.setText(`NOT EQUAL TO ${gameState.criteriaNum}`);
+                break;
+            default:
+                break;
         }
+        if (mixmode) { gameState.expressionsMode = expressions.MIXED; }
     }
 
     /**
-     * Helper function that checks if n is a multiple of criteria number.
+     * Helper function that checks if n satisfies a certain criteria number.
      * @param {*} n is the number that we're checking against criteria.
-     * @returns a boolean whether or not n is a multiple of criteria.
+     * @returns a boolean whether or not n satisfies of criteria.
      */
     checkTargetNumber(n) {
-        return (n % gameState.criteriaNum == 0);
+        // return (n % gameState.criteriaNum == 0);
+        switch (gameState.currentLevelType) {
+            case levelType.MULTIPLE: // criteriaNum multiplied by an integer is n.
+                return (n % gameState.criteriaNum == 0);
+            case levelType.FACTOR: // n is a multiple of criteriaNum.
+                return (gameState.criteriaNum % n == 0);
+            case levelType.PRIME: // n is a prime number.
+                for (let i = 1; i < n; i++) {
+                    if (n % i == 0 && i != 1) {
+                        return false;
+                    }
+                }
+                return true;
+            case levelType.EQUALITY:
+                return n == gameState.criteriaNum;
+            case levelType.INEQUALITY:
+                return n != gameState.criteriaNum;
+            default:
+                console.log("ERROR: checkTargetNumber(" + n + ") has no currentLevelType defined! currentLevelType: " + gameState.currentLevelType);
+                return false;
+        }
     }
 
     /**
      * Processes input by the player for movement and absorbing numbers.
      */
 	update() {
-		// #TODO: Process game state 
         // Process input.
         if (Phaser.Input.Keyboard.JustDown(gameState.cursors.up)) {
             this.playerMove(8);
@@ -295,6 +481,89 @@ class MainScene extends Phaser.Scene {
      */
      levelUp() {
         gameState.level++;
+        let flip = Math.random() > 0.5 ? true : false; // coin flip for some random variety in stage types.
+        // Levels have a specific setup range depending on 
+        switch(gameState.level) {
+            case 2:
+                gameState.currentLevelType = levelType.MULTIPLE;
+                this.setCriteria(6, 11);
+                break;
+            case 3:
+                gameState.currentLevelType = levelType.FACTOR;
+                this.setCriteria(3, 25);
+                break;
+            case 4:
+                gameState.currentLevelType = levelType.MULTIPLE;
+                if (flip) { this.setCriteria(2, 2); }
+                else { this.setCriteria(5, 5); }
+                break;
+            case 5:
+                if (flip) { 
+                    gameState.currentLevelType = levelType.FACTOR 
+                    this.setCriteria(10, gameState.maxNumber);
+                }
+                else { 
+                    gameState.currentLevelType = levelType.PRIME; 
+                    this.setCriteria(10, gameState.maxNumber); // numbers unused, but still need to update UI
+                }
+                break;
+            case 6:
+                if (flip) { 
+                    gameState.currentLevelType = levelType.FACTOR 
+                    this.setCriteria(6, gameState.maxNumber);
+                }
+                else { 
+                    gameState.currentLevelType = levelType.MULTIPLE; 
+                    this.setCriteria(9, 15);
+                }
+                break;
+            case 7:
+                if (flip) { gameState.currentLevelType = levelType.EQUALITY }
+                else { gameState.currentLevelType = levelType.INEQUALITY; }
+                this.setCriteria(1, 10);
+                break;
+            case 8:
+                if (flip) { gameState.currentLevelType = levelType.EQUALITY }
+                else { gameState.currentLevelType = levelType.INEQUALITY; }
+                this.setCriteria(1, 24);
+                break;
+            case 9:
+                gameState.currentLevelType = levelType.MULTIPLE;
+                if (flip) { this.setCriteria(10, 10); }
+                else { this.setCriteria(5, 5); }
+                break;
+            default: // beyond stage 9
+                if ((gameState.level - 9) % 5 == 0) { // Type A
+                    gameState.currentLevelType = levelType.MULTIPLE;
+                    this.setCriteria(9, parseInt(gameState.maxNumber / 3), true);
+                } else if ((gameState.level - 9) % 5 == 1) { // Type B
+                    if (flip) { gameState.currentLevelType = levelType.EQUALITY }
+                    else { gameState.currentLevelType = levelType.INEQUALITY; }
+                    this.setCriteria(1, parseInt(gameState.maxNumber / 2), true);
+                } else if ((gameState.level - 9) % 5 == 2) { // Type C
+                    if (flip) { 
+                        gameState.currentLevelType = levelType.FACTOR;
+                        this.setCriteria(10, gameState.maxNumber, true); 
+                    }
+                    else { 
+                        gameState.currentLevelType = levelType.PRIME; 
+                        this.setCriteria(1, gameState.maxNumber, true); 
+                    }
+                } else if ((gameState.level - 9) % 5 == 3) { // Type D
+                    if (flip) { gameState.currentLevelType = levelType.EQUALITY }
+                    else { gameState.currentLevelType = levelType.INEQUALITY; }
+                    this.setCriteria(1, gameState.maxNumber, true);
+                } else { // Type E
+                    gameState.currentLevelType = levelType.MULTIPLE;
+                    let rand = Math.random();
+                    if (rand < 1/4) { this.setCriteria(10, 10, true) }
+                    else if (rand < 2/4) { this.setCriteria(15, 15, true) }
+                    else if (rand < 3/4) { this.setCriteria(20, 20, true) }
+                    else { this.setCriteria(25, 25, true); }
+                }
+                break;
+        }
+        console.log("Level Up to " + gameState.level + "! gameSTate.currentLevelType: " + gameState.currentLevelType);
         gameState.colorFlavorIndex++;
         gameState.levelText.setText(`LV. ${gameState.level}: ${gameState.FLAVORS[gameState.colorFlavorIndex]}`);
         gameState.levelText.setTint(gameState.COLOR_HEXS[gameState.colorFlavorIndex]);
@@ -307,7 +576,7 @@ class MainScene extends Phaser.Scene {
      */
     levelUpDifficulty() {
         gameState.maxNumber += 5; // Increase the maximum number found in a cell.
-        this.setCriteria();
+        gameState.expressNum += 4; // Increase how much the expressions can deviate by.
     }
 
     /**
@@ -322,9 +591,13 @@ class MainScene extends Phaser.Scene {
      */
     gameOverCheck() {
         if (gameState.lives <= 0) {
-            this.hiScoreCheckAndSave();
-            this.scene.stop('MainScene');
-			this.scene.start('GameOverScene');
+            this.hiScoreCheckAndSave();          
+            this.cameras.main.fade(gameState.FADE_TIME_FAST, 0, 0, 0, false, function(camera, progress) {
+                if (progress >= 1.0) {
+                    this.scene.stop('MainScene');
+			        this.scene.start('GameOverScene');
+                }
+            });
         }
     }
 

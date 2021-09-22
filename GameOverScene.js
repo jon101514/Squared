@@ -49,8 +49,12 @@ class GameOverScene extends Phaser.Scene {
         }).setOrigin(0.5);
 		// Setup event to go back to Start
 		this.input.on('pointerdown', () => {
-			this.scene.stop('GameOverScene');
-			this.scene.start('StartScene');
+			this.cameras.main.fade(gameState.FADE_TIME_SLOW, 0, 0, 0, false, function(camera, progress) {
+                if (progress >= 1.0) {
+                    this.scene.stop('GameOverScene');
+			        this.scene.start('StartScene');
+                }
+            });
 		});
 		// And setup cursors to play again
 		gameState.cursors = this.input.keyboard.createCursorKeys();
@@ -61,8 +65,12 @@ class GameOverScene extends Phaser.Scene {
 	 */
 	update() {
 		if (Phaser.Input.Keyboard.JustDown(gameState.cursors.space)) {
-            this.scene.stop('GameOverScene');
-			this.scene.start('MainScene');
+            this.cameras.main.fade(gameState.FADE_TIME_FAST, 0, 0, 0, false, function(camera, progress) {
+                if (progress >= 1.0) {
+                    this.scene.stop('GameOverScene');
+			        this.scene.start('MainScene');
+                }
+            });
         }
 	}
 

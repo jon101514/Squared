@@ -31,9 +31,20 @@ class StartScene extends Phaser.Scene {
 	 */
 	update() {
 		if (Phaser.Input.Keyboard.JustDown(gameState.cursors.space)) {
-			this.scene.stop('StartScene');
-			this.scene.start('MainScene');
+			this.fadeStartGame();
 		}
+	}
+
+	/**
+	 * Fade to black for about a second and then start the game
+	 */
+	fadeStartGame() {
+		this.cameras.main.fade(gameState.FADE_TIME_SLOW, 0, 0, 0, false, function(camera, progress) {
+			if (progress >= 1.0) {
+				this.scene.stop('StartScene');
+				this.scene.start('MainScene');
+			}
+		});
 	}
 
 	/**
