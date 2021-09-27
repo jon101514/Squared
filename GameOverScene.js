@@ -4,6 +4,10 @@ class GameOverScene extends Phaser.Scene {
 		super({ key: 'GameOverScene' })
 	}
 
+	preload() {
+		this.load.audio('ui', ['assets/ui.mp3', 'assets/ui.ogg']);
+	}
+
 	/**
 	 * Create a Game Over message, display the player's score/level,
 	 * display the highest score and highest level, a special animation
@@ -11,6 +15,7 @@ class GameOverScene extends Phaser.Scene {
 	 * title or play again.
 	 */
 	create() {
+		sfx.ui = this.sound.add('ui');
 		// Special effects if player got high score
 		if (gameState.highScoreReached) {
 			this.add.text(gameState.CENTER_X, gameState.CENTER_Y / 2, `You got a High Score!`, {
@@ -49,6 +54,7 @@ class GameOverScene extends Phaser.Scene {
         }).setOrigin(0.5);
 		// Setup event to go back to Start
 		this.input.on('pointerdown', () => {
+			sfx.ui.play();
 			this.cameras.main.fade(gameState.FADE_TIME_SLOW, 0, 0, 0, false, function(camera, progress) {
                 if (progress >= 1.0) {
                     this.scene.stop('GameOverScene');
@@ -65,6 +71,7 @@ class GameOverScene extends Phaser.Scene {
 	 */
 	update() {
 		if (Phaser.Input.Keyboard.JustDown(gameState.cursors.space)) {
+			sfx.ui.play();
             this.cameras.main.fade(gameState.FADE_TIME_FAST, 0, 0, 0, false, function(camera, progress) {
                 if (progress >= 1.0) {
                     this.scene.stop('GameOverScene');

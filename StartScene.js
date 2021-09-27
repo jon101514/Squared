@@ -5,6 +5,7 @@ class StartScene extends Phaser.Scene {
 
 	preload() {
 		this.load.image('logo', 'assets/logo.png');
+		this.load.audio('ui', ['assets/ui.mp3', 'assets/ui.ogg']);
 	}
 
 	/**
@@ -12,6 +13,7 @@ class StartScene extends Phaser.Scene {
 	 * then create a logo, credits, and start prompt.
 	 */
 	create() {
+		sfx.ui = this.sound.add('ui');
 		this.calcCenterCoordinates();
 		this.initializeLocalStorage();
 		this.add.image(gameState.CENTER_X, gameState.CENTER_Y / 2, 'logo').setOrigin(0.5);
@@ -39,6 +41,7 @@ class StartScene extends Phaser.Scene {
 	 * Fade to black for about a second and then start the game
 	 */
 	fadeStartGame() {
+		sfx.ui.play();
 		this.cameras.main.fade(gameState.FADE_TIME_SLOW, 0, 0, 0, false, function(camera, progress) {
 			if (progress >= 1.0) {
 				this.scene.stop('StartScene');
