@@ -19,7 +19,7 @@ const states = {
 }
 
 const sfx = {
-	// absorb, bullet, gameover, laser, levelup, lose, move, ready, ui
+	// absorb, bullet, extend gameover, laser, levelup, lose, move, ready, ui
 };
 
 const gameState = {
@@ -27,12 +27,16 @@ const gameState = {
 	state: states.READY,
 	level: 1,
 	score: 0,
+	toNextBonus: 0, // NOTE: We set this to EVERY_EXTEND on start.
 	minNumber: 1,
 	maxNumber: 50,
 	expressNum: 5, // Deviation from the target number in the expressions.
 	highScoreReached: false, // When set to true, display an extra animation on GameOverScene.
 	currentLevelType: levelType.MULTIPLE,
 	expressionsMode: expressions.OFF,
+	// Scoring variables
+	comboTimer: 0, // amount of time the player has to make a match
+	comboCount: 1,
 	// COLOR/FLAVOR THEMES
 	colorFlavorIndex: 0, // Index in the following two arrays
 	modifierIndex: -1, // Modifier for the flavors past coffee
@@ -52,11 +56,12 @@ const gameState = {
 	INFO_FONT: "18px Verdana",
 	INFO_SMALL_FONT: "14px Verdana",
 	SCORE_FONT: "36px Verdana",
+	COMBO_FONT: "24px Verdana",
 	CENTER_X: 0, // Calculated in StartScene
 	CENTER_Y: 0, // Calculated in StartScene
 	FADE_TIME_SLOW: 1024,
 	FADE_TIME_FAST: 256,
-	LOSE_TIME: 1536,
+	LOSE_TIME: 2500,
 	// CONSTANT
 	LS_HISCORE_KEY: "INSQ-highScore",
 	LS_HILEVEL_KEY: "INSQ-highLevel",
@@ -65,6 +70,14 @@ const gameState = {
 	DEFAULT_HISCORE: 10,
 	DEFAULT_HILEVEL: 5,
 	MIN_GRID_THRESHOLD: 0.20,
+	REROLL_PERCENT: 0.5,
+	// SCORING SYSTEM CONSTANT
+	COMBO_TIMER_MAX: 2000,
+	BASE_SCORE: 10,
+	COMBO_COUNTER_DEPLETE_TIME: 167, // deplete 6 combos per second.
+	TOP_OF_GRID_Y: 130,
+	BOTTOM_OF_GRID_Y: 522,
+	EVERY_EXTEND: 10000,
 };
 
 const config = {
@@ -79,7 +92,9 @@ const config = {
 			enableBody: true,
 		}
 	},
+	useTicker: true,
 	scene: [StartScene, MainScene, GameOverScene]
 };
 
 const game = new Phaser.Game(config);
+

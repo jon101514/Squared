@@ -13,10 +13,12 @@ class MainScene extends Phaser.Scene {
         this.load.image('spark', 'assets/spark.png');
         this.load.image('life', 'assets/life.png');
         this.load.image('bullet', 'assets/bullet.png');
-        this.load.image('fragment', 'assets/fragments.png')
+        this.load.image('fragment', 'assets/fragments.png');
+        this.load.image('line', 'assets/line.png')
         // Load the sound effects.
         this.load.audio('absorb', ['assets/absorb.mp3', 'assets/absorb.ogg']);
         this.load.audio('bullet', ['assets/bullet.mp3', 'assets/bullet.ogg']);
+        this.load.audio('extend', ['assets/extend.mp3', 'assets/extend.ogg']);
         this.load.audio('gameover', ['assets/gameover.mp3', 'assets/gameover.ogg']);
         this.load.audio('laser', ['assets/laser.mp3', 'assets/laser.ogg']);
         this.load.audio('levelup', ['assets/levelup.mp3', 'assets/levelup.ogg']);
@@ -43,6 +45,8 @@ class MainScene extends Phaser.Scene {
         this.makeAudio();
         // Create the UI.
         this.makeUI();
+        // Create the timer sprites (horizontal lines to the sides of the board.)
+        this.makeTimerSprites();
         // Create particle emitter.
         this.makeParticles();
         gameState.cursors = this.input.keyboard.createCursorKeys(); // Setup taking input.
@@ -56,6 +60,7 @@ class MainScene extends Phaser.Scene {
         gameState.state = states.READY;
         gameState.level = 1;
         gameState.score = 0;
+        gameState.toNextBonus = gameState.EVERY_EXTEND;
         gameState.minNumber = 1;
         gameState.maxNumber = 50;
         gameState.expressNum = 5;
@@ -64,6 +69,8 @@ class MainScene extends Phaser.Scene {
         gameState.expressionsMode = expressions.OFF;
         gameState.colorFlavorIndex = 0;
         gameState.modifierIndex = -1;
+        gameState.comboTimer = 0;
+        gameState.comboCount = 1;
     }
 
     /**
@@ -146,9 +153,37 @@ class MainScene extends Phaser.Scene {
             font: gameState.READY_FONT,
             fill: '#ff0000'
         }).setOrigin(0.5);
+        gameState.comboCounterTextLeft = this.add.text(gameState.CENTER_X / 7 + 8, gameState.CENTER_Y - 32, `1x`, {
+            font: gameState.COMBO_FONT,
+            fill: '#ffffff',
+        }).setOrigin(0.5).setFontStyle('bold italic');
+        gameState.comboCounterTextRight = this.add.text(config.width - gameState.CENTER_X / 7 - 8, gameState.CENTER_Y - 32, `1x`, {
+            font: gameState.COMBO_FONT,
+            fill: '#ffffff',
+        }).setOrigin(0.5).setFontStyle('bold italic');
+        // gameState.timerText = this.add.text(gameState.CENTER_X / 7 + 8, gameState.CENTER_Y - 96, `time`, {
+        //     font: gameState.INFO_FONT,
+        //     fill: '#00ffff',
+        // }).setOrigin(0.5);
         this.showReadyPrompt();
         gameState.levelText.setTint(gameState.COLOR_HEXS[gameState.colorFlavorIndex]);
         this.setupLivesDisplay();
+    }
+
+    /**
+     * Make static and dynamic sprites that represent the combo timer.
+     * The dynamic ones will move from the top to the bottom as the combo timer runs out.
+     * When it hits the bottom, start taking from the player's combo count.
+     */
+    makeTimerSprites() {
+        // Static sprites
+        gameState.leftTopTimer = this.add.sprite(38, gameState.TOP_OF_GRID_Y, 'line');
+        gameState.rightTopTimer = this.add.sprite(config.width - 38, gameState.TOP_OF_GRID_Y, 'line');
+        gameState.leftBottomTimer = this.add.sprite(38, gameState.BOTTOM_OF_GRID_Y, 'line');
+        gameState.rightBottomTimer = this.add.sprite(config.width - 38, gameState.BOTTOM_OF_GRID_Y, 'line');
+        // Moving sprites
+        gameState.leftTimerBar = this.add.sprite(38, gameState.TOP_OF_GRID_Y, 'line');
+        gameState.rightTimerBar = this.add.sprite(config.width - 38, gameState.TOP_OF_GRID_Y, 'line');
     }
 
     /**
@@ -206,9 +241,13 @@ class MainScene extends Phaser.Scene {
         gameState.loseEmitter.explode(0, gameState.player.x, gameState.player.y);
     }
 
+    /**
+     * Add all of the sound effects to the sfx object.
+     */
     makeAudio() {
         sfx.absorb = this.sound.add('absorb');
         sfx.bullet = this.sound.add('bullet');
+        sfx.extend = this.sound.add('extend');
         sfx.gameover = this.sound.add('gameover');
         sfx.levelup = this.sound.add('levelup');
         sfx.laser = this.sound.add('laser');
@@ -301,6 +340,10 @@ class MainScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * A helper function that calculates the percent of targetNums on the board.
+     * If it's below 20%, then reroll a percent of the non-target spaces to become targetNums.
+     */
     checkGridThreshold() {
         let targNums = 0; // amount of target numbers
         let nonNums = 0; // amount of non-target numbers
@@ -317,21 +360,27 @@ class MainScene extends Phaser.Scene {
         }
         console.log("checkGridThreshold results: " + (targNums / (targNums + nonNums)).toString());
         let percent = (targNums / (targNums + nonNums));
-        // Reroll the spaces that were non-target.
-        if (percent < gameState.MIN_GRID_THRESHOLD) {
+        // Reroll a percentage of the spaces that were non-target.
+        while (percent < gameState.MIN_GRID_THRESHOLD) {
             for (let i = 0; i < nons.length; i++) {
-                if (Math.random() > 0.5) {
+                if (Math.random() < gameState.REROLL_PERCENT) {
                     this.resetGridSpace(nons[i], true);
                     nonNums--;
                     targNums++;
                 }
             }
+            percent = (targNums / (targNums + nonNums))
+            console.log("Reroll! results: " + (targNums / (targNums + nonNums)).toString());
         }
-        console.log("Reroll! results: " + (targNums / (targNums + nonNums)).toString());
     }
 
+    /**
+     * Generates either an addition or subtraction expression that equals the number given as parameter.
+     * @param {Number} n: The number that the expression eventually evaluates to.
+     * @returns A string expression that, when evaluated, becomes the number n.
+     */
     generateExpression(n) {
-        // xType: below 1/4 is addition, below 1/2 is subtraction, below 3/4 is multiplication, else, division
+        // xType: below 1/2 is addition, above 1/2 is subtraction
         let xType = Math.random(); 
         let flip = Math.random() > 0.5 ? true : false; // coin flip to see if we have a mirrored expression
         let rand = parseInt(Math.random() * gameState.expressNum);
@@ -339,7 +388,7 @@ class MainScene extends Phaser.Scene {
         if (xType < 1/2) { // Addition, where (rand) + (n - rand) or vice versa
             if (flip) { result = (rand.toString() + ' + ' + (n - rand).toString()); }
             else { result = ((n - rand).toString() + ' + ' + rand.toString()); }
-        } else if (xType < 1) { // Subtraction where (n + rand) - (rand)
+        } else { // Subtraction where (n + rand) - (rand)
             result = ((n + rand).toString() + ' - ' + (rand).toString());
         }
         return result;
@@ -414,7 +463,7 @@ class MainScene extends Phaser.Scene {
     /**
      * Processes input by the player for movement and absorbing numbers.
      */
-	update() {
+	update(timestep, dt) {
         if (gameState.state == states.PLAYING) {
             // Process input.
             if (Phaser.Input.Keyboard.JustDown(gameState.cursors.up)) {
@@ -429,10 +478,53 @@ class MainScene extends Phaser.Scene {
                 this.absorbNumber();
             }
             else if (Phaser.Input.Keyboard.JustDown(gameState.cursors.shift)) {
+                console.log("DEBUG: Level Up!");
                 this.levelUp();
             }
+            // Process the combo timer/counter.
+            this.processComboSystem(this.sys.game.loop.deltaHistory[9]);
+            // console.log("time: " + this.sys.game.loop.time.toString());
+            // console.log("delta: " + this.sys.game.loop.deltaHistory.toString());
         }        
 	}
+
+    /**
+     * Handles the combo timer/counter system on a timed basis.
+     * This entails subtracting the appropriate amount of time from combo timer
+     * and, if the combo timer is out, then decrease the player's combo count.
+     * @param {Number} deltaTime - the amount of time that's passed from the previous frame, in ms.
+     */
+    processComboSystem(deltaTime) {
+        // Decrease the combo timer.
+        if (gameState.comboTimer > 0) {
+            gameState.comboTimer -= deltaTime;
+            // gameState.timerText.setText(gameState.comboTimer.toString());
+            // Update the positions of the timer bar.
+            gameState.leftTimerBar.y = this.lerp(gameState.BOTTOM_OF_GRID_Y, gameState.TOP_OF_GRID_Y, gameState.comboTimer / gameState.COMBO_TIMER_MAX);
+            gameState.rightTimerBar.y = this.lerp(gameState.BOTTOM_OF_GRID_Y, gameState.TOP_OF_GRID_Y, gameState.comboTimer / gameState.COMBO_TIMER_MAX);
+        } else { // Decrease the combo count.
+            // console.log("Deplete Event: " + gameState.depleteEvent);
+            if (!gameState.depleteEvent) {
+                gameState.depleteEvent = this.time.addEvent({
+                    callback: () => {
+                        if (gameState.comboCount > 1) { 
+                            // console.log("DEPLETED!");
+                            this.setComboCount(gameState.comboCount - 1);
+                        }
+                    },
+                    delay: gameState.COMBO_COUNTER_DEPLETE_TIME,
+                    callbackScope: this,
+                    loop: true
+                });
+            }
+        }
+    }
+
+    lerp(a, b, t) {
+        if (t < 0) { t = 0; }
+        else if (t > 1) { t = 1; }
+        return (1 - t) * a + t * b;
+    }
 
     /**
      * Moves the player in one of the four cardinal directions on the grid.
@@ -482,8 +574,28 @@ class MainScene extends Phaser.Scene {
             if (gridSpace.absorbed) { return; }
             // Otherwise, continue... 
             sfx.absorb.play();
-            gameState.score += 10;
+            // Scoring System updates:
+
+            gameState.comboTimer = gameState.COMBO_TIMER_MAX; // reset timer
+            // stop depleting the combo counter
+            if (gameState.depleteEvent != null) { 
+                gameState.depleteEvent.destroy(); 
+                gameState.depleteEvent = null;
+            } 
+            
+            this.setComboCount(gameState.comboCount + 1);
+            
+            gameState.score += gameState.BASE_SCORE * (gameState.comboCount);
             gameState.scoreText.setText(`${gameState.score}`);
+
+            // Check for extends
+            if (gameState.score >= gameState.toNextBonus) { // They got it!
+                sfx.extend.play();
+                gameState.lives++;
+                this.setupLivesDisplay();
+                gameState.toNextBonus += gameState.EVERY_EXTEND; // Up the amount of points they need.
+            }
+
             // Play particle FX
             gameState.emitter.explode(8, gameState.player.x, gameState.player.y);
             gridSpace.absorbed = true;
@@ -497,10 +609,23 @@ class MainScene extends Phaser.Scene {
     }
 
     /**
+     * Sets the combo counter to a new value and then updates the UI.
+     * @param {Number} newCount - the new value of the combo counter.
+     */
+    setComboCount(newCount) {
+        gameState.comboCount = newCount;
+        gameState.comboCounterTextLeft.setText(gameState.comboCount + "x");
+        gameState.comboCounterTextRight.setText(gameState.comboCount + "x");
+    }
+
+    /**
      * When the player has absorbed the wrong number or has been hit,
      * subtract a life, give the player a bit of pause, and resume play.
      */
     loseLife() {
+        // Drop the combo.
+        this.setComboCount(1);
+
         gameState.lives--;
         gameState.state = states.LOSING;
         sfx.lose.play();
@@ -569,6 +694,8 @@ class MainScene extends Phaser.Scene {
      * Increase the level, update the UI, and set a new criteria/grid.
      */
      levelUp() {
+         // Have a bit of a pause so that the player can notice the new criteria up top.
+        this.showReadyPrompt();
         sfx.levelup.play();
         gameState.level++;
         let flip = Math.random() > 0.5 ? true : false; // coin flip for some random variety in stage types.
@@ -687,7 +814,7 @@ class MainScene extends Phaser.Scene {
      * Quickly shake the screen.
      */
     screenShake() {
-        this.cameras.main.shake(50, 0.01, true);
+        this.cameras.main.shake(192, 0.01, true);
     }
 
     /**
