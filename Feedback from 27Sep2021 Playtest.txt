@@ -1,0 +1,19 @@
+OBSERVATIONS
+
+Speedplay -- the scoring system is working as intended
+	Meaning speed leads to mistakes
+2 is a prime number
+
+Do I need some kind of penalty for being idle?
+With expressions, hard to see since they're written in black (like the cursor)
+	When highlighted by the player, can I change the color of them (possibly to the theme color)?
+
+After an initial loss, it's kind of discouraging to go back to 1x combo...
+
+Flavors don't change the color of anything
+
+
+BRANDON'S FEEDBACK
+
+good difficulty scale
+get into a rhythm, satisfying
