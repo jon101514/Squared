@@ -19,7 +19,7 @@ const states = {
 }
 
 const sfx = {
-	// absorb, bullet, extend gameover, laser, levelup, lose, move, ready, ui
+	// absorb, bullet, extend, gameover, laser, levelup, lose, move, ready, ui
 };
 
 const gameState = {
@@ -63,8 +63,8 @@ const gameState = {
 	FADE_TIME_FAST: 256,
 	LOSE_TIME: 2500,
 	// CONSTANT
-	LS_HISCORE_KEY: "INSQ-highScore",
-	LS_HILEVEL_KEY: "INSQ-highLevel",
+	LS_HISCORE_KEY: "INSQ-highScore", // Unique key because, y'know, everyone would otherwise
+	LS_HILEVEL_KEY: "INSQ-highLevel", // use keys like "High Score" which would then be overwritten in localStorage.
 	GRID_WIDTH: 5,
     GRID_HEIGHT: 6,
 	DEFAULT_HISCORE: 10,
@@ -74,7 +74,7 @@ const gameState = {
 	// SCORING SYSTEM CONSTANT
 	COMBO_TIMER_MAX: 2000,
 	BASE_SCORE: 10,
-	COMBO_COUNTER_DEPLETE_TIME: 167, // deplete 6 combos per second.
+	COMBO_COUNTER_DEPLETE_TIME: 167, // deplete ~6 combos per second.
 	TOP_OF_GRID_Y: 130,
 	BOTTOM_OF_GRID_Y: 522,
 	EVERY_EXTEND: 10000,

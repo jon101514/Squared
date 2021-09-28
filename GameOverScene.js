@@ -4,6 +4,9 @@ class GameOverScene extends Phaser.Scene {
 		super({ key: 'GameOverScene' })
 	}
 
+	/**
+	 * Preload the sound effect for transferring to another scene.
+	 */
 	preload() {
 		this.load.audio('ui', ['assets/ui.mp3', 'assets/ui.ogg']);
 	}

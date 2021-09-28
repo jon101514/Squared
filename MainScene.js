@@ -99,8 +99,8 @@ class MainScene extends Phaser.Scene {
                 newCell.print = this.add.text(newCell.x-10, newCell.y-10, newCell.printNumber, {
                     align: "center",
                     font: gameState.INFO_FONT,
-                    fill: '#000000'
-                });
+                    fill: '#ffffff'
+                }).setTint(0x000000); // We use tint since we change the color of the numbers.
             }
         }
     }
@@ -161,10 +161,6 @@ class MainScene extends Phaser.Scene {
             font: gameState.COMBO_FONT,
             fill: '#ffffff',
         }).setOrigin(0.5).setFontStyle('bold italic');
-        // gameState.timerText = this.add.text(gameState.CENTER_X / 7 + 8, gameState.CENTER_Y - 96, `time`, {
-        //     font: gameState.INFO_FONT,
-        //     fill: '#00ffff',
-        // }).setOrigin(0.5);
         this.showReadyPrompt();
         gameState.levelText.setTint(gameState.COLOR_HEXS[gameState.colorFlavorIndex]);
         this.setupLivesDisplay();
@@ -223,7 +219,7 @@ class MainScene extends Phaser.Scene {
             quantity: 8,
             blendMode: 'ADD'
         }); 
-        gameState.emitter.explode(0, gameState.player.x, gameState.player.y);
+        gameState.emitter.explode(0, gameState.player.x, gameState.player.y); // prevent from showing
         // Lose Particles
         gameState.loseParticles = this.add.particles('fragment');
         gameState.loseEmitter = gameState.loseParticles.createEmitter({
@@ -234,11 +230,11 @@ class MainScene extends Phaser.Scene {
             speedY: {min: -128, max: 128},
             scale: {start: 1.5, end: 0},
             quantity: 16,
-            rotate: () => { return Math.random() * 360},
-            onUpdate: (particle) => { return particle.angle + 1},
+            rotate: () => { return Math.random() * 360}, // random rotation
+            onUpdate: (particle) => { return particle.angle + 1}, // spin the "fragments"
             blendMode: 'NORMAL'
         });
-        gameState.loseEmitter.explode(0, gameState.player.x, gameState.player.y);
+        gameState.loseEmitter.explode(0, gameState.player.x, gameState.player.y); // prevent from showing
     }
 
     /**
@@ -272,7 +268,7 @@ class MainScene extends Phaser.Scene {
     /**
      * Given a cell in the grid, sets the number inside it as well as its text representation.
      * @param {*} cell: A space in the grid from gameState.grid[x][y].
-     * @param {*} forceTarget (optional) Force the number in the cell we're generating to be a target number.
+     * @param {boolean} forceTarget (optional) Force the number in the cell we're generating to be a target number.
      */
     resetGridSpace(cell, forceTarget = false) {
         cell.print.destroy();
@@ -314,8 +310,8 @@ class MainScene extends Phaser.Scene {
                 cell.print = this.add.text(cell.x-32, cell.y-10, cell.printNumber, {
                     align: "center",
                     font: gameState.INFO_SMALL_FONT,
-                    fill: '#000000'
-                });
+                    fill: '#ffffff'
+                }).setTint(0x000000);
                 break;
             case expressions.MIXED:
                 let flip = Math.random() > 0.5 ? true : false; // coin flip 
@@ -324,18 +320,18 @@ class MainScene extends Phaser.Scene {
                     cell.print = this.add.text(cell.x-32, cell.y-10, cell.printNumber, {
                         align: "center",
                         font: gameState.INFO_SMALL_FONT,
-                        fill: '#000000'
-                    });
+                        fill: '#ffffff'
+                    }).setTint(0x000000);
                     break;
-                } // otherwise, it'll fall thru to the 'off' case.
+                } // otherwise, it'll fall thru to the 'off' case, which is just the number.
             case expressions.OFF:
             default:
                 cell.printNumber = cell.number.toString();
                 cell.print = this.add.text(cell.x-10, cell.y-10, cell.printNumber, {
                     align: "center",
                     font: gameState.INFO_FONT,
-                    fill: '#000000'
-                });
+                    fill: '#ffffff'
+                }).setTint(0x000000);
                 break;
         }
     }
@@ -396,6 +392,10 @@ class MainScene extends Phaser.Scene {
 
     /** 
      * Sets the criteria number and updates the text to match.
+     * @param {Number} min: The minimum number that the criteria number can be.
+     * @param {Number} max: The minimum number that the criteria number can be.
+     * @param {Boolean} mixmode = false: Whether or not there's a chance to
+     *          generate an expression instead of a number.
      */
     setCriteria(min, max, mixmode = false) {
         switch (gameState.currentLevelType) {
@@ -432,11 +432,10 @@ class MainScene extends Phaser.Scene {
 
     /**
      * Helper function that checks if n satisfies a certain criteria number.
-     * @param {*} n is the number that we're checking against criteria.
+     * @param {Number} n is the number that we're checking against criteria.
      * @returns a boolean whether or not n satisfies of criteria.
      */
     checkTargetNumber(n) {
-        // return (n % gameState.criteriaNum == 0);
         switch (gameState.currentLevelType) {
             case levelType.MULTIPLE: // criteriaNum multiplied by an integer is n.
                 return (n % gameState.criteriaNum == 0);
@@ -477,14 +476,12 @@ class MainScene extends Phaser.Scene {
             } else if (Phaser.Input.Keyboard.JustDown(gameState.cursors.space)) {
                 this.absorbNumber();
             }
-            else if (Phaser.Input.Keyboard.JustDown(gameState.cursors.shift)) {
-                console.log("DEBUG: Level Up!");
-                this.levelUp();
-            }
+            // else if (Phaser.Input.Keyboard.JustDown(gameState.cursors.shift)) {
+            //     console.log("DEBUG: Level Up!");
+            //     this.levelUp();
+            // }
             // Process the combo timer/counter.
             this.processComboSystem(this.sys.game.loop.deltaHistory[9]);
-            // console.log("time: " + this.sys.game.loop.time.toString());
-            // console.log("delta: " + this.sys.game.loop.deltaHistory.toString());
         }        
 	}
 
@@ -498,17 +495,14 @@ class MainScene extends Phaser.Scene {
         // Decrease the combo timer.
         if (gameState.comboTimer > 0) {
             gameState.comboTimer -= deltaTime;
-            // gameState.timerText.setText(gameState.comboTimer.toString());
             // Update the positions of the timer bar.
             gameState.leftTimerBar.y = this.lerp(gameState.BOTTOM_OF_GRID_Y, gameState.TOP_OF_GRID_Y, gameState.comboTimer / gameState.COMBO_TIMER_MAX);
             gameState.rightTimerBar.y = this.lerp(gameState.BOTTOM_OF_GRID_Y, gameState.TOP_OF_GRID_Y, gameState.comboTimer / gameState.COMBO_TIMER_MAX);
         } else { // Decrease the combo count.
-            // console.log("Deplete Event: " + gameState.depleteEvent);
             if (!gameState.depleteEvent) {
                 gameState.depleteEvent = this.time.addEvent({
                     callback: () => {
                         if (gameState.comboCount > 1) { 
-                            // console.log("DEPLETED!");
                             this.setComboCount(gameState.comboCount - 1);
                         }
                     },
@@ -520,6 +514,13 @@ class MainScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Helper function that returns the lerp value between a and b from t.
+     * @param {Number} a - the minimum return value, where t = 0.
+     * @param {Number} b - the maximum return value, where t = 1.
+     * @param {Number} t - Should be from 0 to 1 (we fix that though), amount we lerp between a and b.
+     * @returns the lerped value from a to b where t stands.
+     */
     lerp(a, b, t) {
         if (t < 0) { t = 0; }
         else if (t > 1) { t = 1; }
@@ -528,43 +529,55 @@ class MainScene extends Phaser.Scene {
 
     /**
      * Moves the player in one of the four cardinal directions on the grid.
-     * @param {*} direction - numpad notation for the direction to move. 8, 2, 4, or 6.
+     * @param {Number} direction - numpad notation for the direction to move. 8, 2, 4, or 6.
      */
     playerMove(direction) {
+        let moved = false;
+        let prevX = gameState.player.gx;
+        let prevY = gameState.player.gy;
         switch(direction) {
             case 8: // UP
                 if (gameState.player.gy > 0) { // If in bounds...
                     gameState.player.gy--;
                     gameState.player.y = gameState.grid[gameState.player.gx][gameState.player.gy].y;
+                    moved = true;
                 }
                 break;
             case 2: // DOWN
                 if (gameState.player.gy < gameState.GRID_HEIGHT - 1) { // If in bounds...
                     gameState.player.gy++;
                     gameState.player.y = gameState.grid[gameState.player.gx][gameState.player.gy].y;
+                    moved = true;
                 }
                 break;
             case 4: // LEFT
                 if (gameState.player.gx > 0) { // If in bounds...
                     gameState.player.gx--;
                     gameState.player.x = gameState.grid[gameState.player.gx][gameState.player.gy].x;
+                    moved = true;
                 }
                 break;
             case 6: // RIGHT
                 if (gameState.player.gx < gameState.GRID_WIDTH - 1) { // If in bounds...
                     gameState.player.gx++;
                     gameState.player.x = gameState.grid[gameState.player.gx][gameState.player.gy].x;
+                    moved = true;
                 }
                 break;
             default:
                 break;
         }
-        sfx.move.play();
+        // If moved, set the color of the current text to red and the previous square back to black.
+        if (moved) { 
+            gameState.grid[prevX][prevY].print.setTint(0x000000);
+            gameState.grid[gameState.player.gx][gameState.player.gy].print.setTint(0xff0000); 
+            sfx.move.play(); // play sound effect
+        }
     }
 
     /**
      * Reads the number the player is currently on and if it is a targetNumber
-     * (it fulfils the criteria), then absorb it. Otherwise, reset the board.
+     * (it fulfils the criteria), then absorb it. Otherwise, lose a turn.
      * Also, if the player has completed the level, reset the board.
      */
     absorbNumber() {
@@ -574,8 +587,8 @@ class MainScene extends Phaser.Scene {
             if (gridSpace.absorbed) { return; }
             // Otherwise, continue... 
             sfx.absorb.play();
-            // Scoring System updates:
 
+            // Scoring System updates:
             gameState.comboTimer = gameState.COMBO_TIMER_MAX; // reset timer
             // stop depleting the combo counter
             if (gameState.depleteEvent != null) { 
@@ -640,11 +653,10 @@ class MainScene extends Phaser.Scene {
             scaleY: 0,
             rotation: () => { return gameState.player.angle + 15; },
             ease: 'Linear', // easing function, like bouncing
-            duration: gameState.LOSE_TIME, // length in ms
+            duration: gameState.FADE_TIME_SLOW, // length in ms
             repeat: 0, // -1 for infinite, +n for finite
             yoyo: true // play the tween in reverse once at end
         });
-        // gameState.player.shrink.play();
         this.time.addEvent({
             callback: this.showReadyPrompt,
             delay: gameState.LOSE_TIME,
@@ -653,6 +665,11 @@ class MainScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Display a ready prompt while playing the "READY" sound effect.
+     * This gives the player enough time to absorb either the new level criteria
+     * or (if they lost) why the number they chose doesn't fit the criteria.
+     */
     showReadyPrompt() {
         console.log("restoreLife");
         sfx.ready.play();
@@ -667,6 +684,9 @@ class MainScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Set the gamestate back to playing as we hide the READY prompt.
+     */
     setBackToPlaying() {
         gameState.readyPrompt.setText("");
         gameState.state = states.PLAYING;
@@ -770,7 +790,7 @@ class MainScene extends Phaser.Scene {
                     if (flip) { gameState.currentLevelType = levelType.EQUALITY }
                     else { gameState.currentLevelType = levelType.INEQUALITY; }
                     this.setCriteria(1, gameState.maxNumber, true);
-                } else { // Type E: Breather level, X10, X15, X20, or X25
+                } else { // Type E: Breather level, X10, X15, X20, or X25. Easier material.
                     gameState.currentLevelType = levelType.MULTIPLE;
                     let rand = Math.random();
                     if (rand < 1/4) { this.setCriteria(10, 10, true) }
@@ -780,7 +800,7 @@ class MainScene extends Phaser.Scene {
                 }
                 break;
         }
-        console.log("Level Up to " + gameState.level + "! gameSTate.currentLevelType: " + gameState.currentLevelType);
+        console.log("Level Up to " + gameState.level + "! gameState.currentLevelType: " + gameState.currentLevelType);
         // Keeping both colorFlavor and modifier indices in bounds (Modifiers show up after exhausting all flavors; start back at vanilla.)
         gameState.colorFlavorIndex++;
         if (gameState.colorFlavorIndex > gameState.FLAVORS.length - 1) {
