@@ -65,12 +65,15 @@ class MainScene extends Phaser.Scene {
         gameState.maxNumber = 50;
         gameState.expressNum = 5;
         gameState.highScoreReached = false;
+        gameState.highLevelReached = false;
+        gameState.highComboReached = false;
         gameState.currentLevelType = levelType.MULTIPLE;
         gameState.expressionsMode = expressions.OFF;
         gameState.colorFlavorIndex = 0;
         gameState.modifierIndex = -1;
         gameState.comboTimer = 0;
         gameState.comboCount = 1;
+        gameState.bestCombo = 1;
     }
 
     /**
@@ -161,6 +164,12 @@ class MainScene extends Phaser.Scene {
             font: gameState.COMBO_FONT,
             fill: '#ffffff',
         }).setOrigin(0.5).setFontStyle('bold italic');
+        // Display the high score/highest level/ highest combo
+		gameState.highText = this.add.text(gameState.CENTER_X, 16, 
+			`HI SCORE-${localStorage.getItem(gameState.LS_HISCORE_KEY)}\t\tHI COMBO-${localStorage.getItem(gameState.LS_HICOMBO_KEY)}\t\tHI LEVEL-${localStorage.getItem(gameState.LS_HILEVEL_KEY)}`, {
+				font: gameState.INFO_FONT,
+            	fill: '#ffffff'
+        }).setOrigin(0.5).setTint(0xff0000).setFontStyle("bold"); 
         this.showReadyPrompt();
         gameState.levelText.setTint(gameState.COLOR_HEXS[gameState.colorFlavorIndex]);
         this.setupLivesDisplay();
@@ -274,13 +283,14 @@ class MainScene extends Phaser.Scene {
         cell.print.destroy();
 
         // Force EQUALITY and INEQUALITY levels to have a certain amount of target numbers.
+        // NOTE: I quarter the gameState.maxNumber here to make the difficulty spike less daunting.
         if (gameState.currentLevelType == levelType.EQUALITY) {
             let rand = Math.random();
             if (rand < gameState.MIN_GRID_THRESHOLD) {
                 cell.number = gameState.criteriaNum;
                 cell.targetNumber = this.checkTargetNumber(cell.number);
             } else {
-                cell.number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber);
+                cell.number = parseInt((Math.random() * (gameState.maxNumber / 4)) + gameState.minNumber);
                 cell.targetNumber = this.checkTargetNumber(cell.number);
             }
         } else if (gameState.currentLevelType == levelType.INEQUALITY) {
@@ -289,7 +299,7 @@ class MainScene extends Phaser.Scene {
                 cell.number = gameState.criteriaNum;
                 cell.targetNumber = this.checkTargetNumber(cell.number);
             } else {
-                cell.number = parseInt((Math.random() * gameState.maxNumber) + gameState.minNumber);
+                cell.number = parseInt((Math.random() * (gameState.maxNumber / 4)) + gameState.minNumber);
                 cell.targetNumber = this.checkTargetNumber(cell.number);
             }
         } else { // For all other stages, just generate the number.
@@ -535,32 +545,42 @@ class MainScene extends Phaser.Scene {
         let moved = false;
         let prevX = gameState.player.gx;
         let prevY = gameState.player.gy;
+        
         switch(direction) {
             case 8: // UP
                 if (gameState.player.gy > 0) { // If in bounds...
                     gameState.player.gy--;
-                    gameState.player.y = gameState.grid[gameState.player.gx][gameState.player.gy].y;
+                    // gameState.player.y = gameState.grid[gameState.player.gx][gameState.player.gy].y;
+                    this.playerMoveTween(false);
+
                     moved = true;
                 }
                 break;
             case 2: // DOWN
                 if (gameState.player.gy < gameState.GRID_HEIGHT - 1) { // If in bounds...
                     gameState.player.gy++;
-                    gameState.player.y = gameState.grid[gameState.player.gx][gameState.player.gy].y;
+                    //gameState.player.y = gameState.grid[gameState.player.gx][gameState.player.gy].y;
+                    this.playerMoveTween(false);
+
                     moved = true;
                 }
                 break;
             case 4: // LEFT
                 if (gameState.player.gx > 0) { // If in bounds...
                     gameState.player.gx--;
-                    gameState.player.x = gameState.grid[gameState.player.gx][gameState.player.gy].x;
+                    // gameState.player.x = gameState.grid[gameState.player.gx][gameState.player.gy].x;
+                    this.playerMoveTween(true);
+
                     moved = true;
+                    
                 }
                 break;
             case 6: // RIGHT
                 if (gameState.player.gx < gameState.GRID_WIDTH - 1) { // If in bounds...
                     gameState.player.gx++;
-                    gameState.player.x = gameState.grid[gameState.player.gx][gameState.player.gy].x;
+                    // gameState.player.x = gameState.grid[gameState.player.gx][gameState.player.gy].x;
+                    this.playerMoveTween(true);
+
                     moved = true;
                 }
                 break;
@@ -572,6 +592,36 @@ class MainScene extends Phaser.Scene {
             gameState.grid[prevX][prevY].print.setTint(0x000000);
             gameState.grid[gameState.player.gx][gameState.player.gy].print.setTint(0xff0000); 
             sfx.move.play(); // play sound effect
+        }
+    }
+
+    /**
+     * Uses a tween to move the player on the grid, squashing/stretching them too.
+     * @param {boolean} isXMove - if true, the player is making a horizontal movement. Otherwise, vertical.
+     */
+    playerMoveTween(isXMove) {
+        if (isXMove) {
+            gameState.player.move = this.tweens.add({
+                targets: gameState.player, // what the tween affects
+                x: gameState.grid[gameState.player.gx][gameState.player.gy].x,
+                scaleY: 1/2,
+                ease: 'Linear', // easing function, like bouncing
+                duration: gameState.MOVE_TIME, // length in ms
+                repeat: 0, // -1 for infinite, +n for finite
+                yoyo: false, // play the tween in reverse once at end
+                onComplete: () => { gameState.player.scaleY = 1; }
+            });
+        } else {
+            gameState.player.move = this.tweens.add({
+                targets: gameState.player, // what the tween affects
+                y: gameState.grid[gameState.player.gx][gameState.player.gy].y,
+                scaleX: 1/2,
+                ease: 'Linear', // easing function, like bouncing
+                duration: gameState.MOVE_TIME, // length in ms
+                repeat: 0, // -1 for infinite, +n for finite
+                yoyo: false, // play the tween in reverse once at end
+                onComplete: () => { gameState.player.scaleX = 1; }
+            });
         }
     }
 
@@ -610,7 +660,7 @@ class MainScene extends Phaser.Scene {
             }
 
             // Play particle FX
-            gameState.emitter.explode(8, gameState.player.x, gameState.player.y);
+            gameState.emitter.explode(8 + parseInt(gameState.comboCount / 4), gameState.player.x, gameState.player.y);
             gridSpace.absorbed = true;
             gridSpace.print.destroy();
             if (this.isLevelComplete()) {
@@ -623,12 +673,14 @@ class MainScene extends Phaser.Scene {
 
     /**
      * Sets the combo counter to a new value and then updates the UI.
+     * Also keep track of the best combo so that we can register it as a highest combo (potentially).
      * @param {Number} newCount - the new value of the combo counter.
      */
     setComboCount(newCount) {
         gameState.comboCount = newCount;
         gameState.comboCounterTextLeft.setText(gameState.comboCount + "x");
         gameState.comboCounterTextRight.setText(gameState.comboCount + "x");
+        if (gameState.comboCount > gameState.bestCombo) { gameState.bestCombo = gameState.comboCount; }
     }
 
     /**
@@ -865,6 +917,12 @@ class MainScene extends Phaser.Scene {
         }
         if (gameState.level > localStorage.getItem(gameState.LS_HILEVEL_KEY)) {
             localStorage.setItem(gameState.LS_HILEVEL_KEY, gameState.level);
+            gameState.highLevelReached = true;
+        }
+        if (gameState.bestCombo > localStorage.getItem(gameState.LS_HICOMBO_KEY)) {
+            localStorage.setItem(gameState.LS_HICOMBO_KEY, gameState.bestCombo);
+            gameState.highComboReached = true;
         }
     }
 }
+

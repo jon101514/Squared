@@ -74,6 +74,12 @@ class StartScene extends Phaser.Scene {
             callbackScope: this,
             loop: false
         });
+		// Display the high score/highest level/ highest combo
+		gameState.highText = this.add.text(gameState.CENTER_X, 16, 
+			`HI SCORE-${localStorage.getItem(gameState.LS_HISCORE_KEY)}\t\tHI COMBO-${localStorage.getItem(gameState.LS_HICOMBO_KEY)}\t\tHI LEVEL-${localStorage.getItem(gameState.LS_HILEVEL_KEY)}`, {
+				font: gameState.INFO_FONT,
+            	fill: '#ffffff'
+        }).setOrigin(0.5).setTint(0xff0000).setFontStyle("bold");
 	}
 
 	/**
@@ -197,6 +203,9 @@ class StartScene extends Phaser.Scene {
 		}
 		if (localStorage.getItem(gameState.LS_HILEVEL_KEY) == null) {
 			localStorage.setItem(gameState.LS_HILEVEL_KEY, gameState.DEFAULT_HILEVEL);
+		}
+		if (localStorage.getItem(gameState.LS_HICOMBO_KEY) == null) {
+			localStorage.setItem(gameState.LS_HICOMBO_KEY, gameState.DEFAULT_HICOMBO);
 		}
     }
 }

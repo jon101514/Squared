@@ -32,11 +32,14 @@ const gameState = {
 	maxNumber: 50,
 	expressNum: 5, // Deviation from the target number in the expressions.
 	highScoreReached: false, // When set to true, display an extra animation on GameOverScene.
+	highLevelReached: false,
+	highComboReached: false,
 	currentLevelType: levelType.MULTIPLE,
 	expressionsMode: expressions.OFF,
 	// Scoring variables
 	comboTimer: 0, // amount of time the player has to make a match
 	comboCount: 1,
+	bestCombo: 1,
 	// COLOR/FLAVOR THEMES
 	colorFlavorIndex: 0, // Index in the following two arrays
 	modifierIndex: -1, // Modifier for the flavors past coffee
@@ -61,14 +64,17 @@ const gameState = {
 	CENTER_Y: 0, // Calculated in StartScene
 	FADE_TIME_SLOW: 1024,
 	FADE_TIME_FAST: 256,
+	MOVE_TIME: 72,
 	LOSE_TIME: 2500,
 	// CONSTANT
 	LS_HISCORE_KEY: "INSQ-highScore", // Unique key because, y'know, everyone would otherwise
 	LS_HILEVEL_KEY: "INSQ-highLevel", // use keys like "High Score" which would then be overwritten in localStorage.
+	LS_HICOMBO_KEY: "INSQ-highCombo", 
 	GRID_WIDTH: 5,
     GRID_HEIGHT: 6,
-	DEFAULT_HISCORE: 10,
+	DEFAULT_HISCORE: 10000,
 	DEFAULT_HILEVEL: 5,
+	DEFAULT_HICOMBO: 25,
 	MIN_GRID_THRESHOLD: 0.20,
 	REROLL_PERCENT: 0.5,
 	// SCORING SYSTEM CONSTANT

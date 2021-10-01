@@ -20,12 +20,26 @@ class GameOverScene extends Phaser.Scene {
 	create() {
 		sfx.ui = this.sound.add('ui');
 		// Special effects if player got high score
-		if (gameState.highScoreReached) {
-			this.add.text(gameState.CENTER_X, gameState.CENTER_Y / 2, `You got a High Score!`, {
-				font: gameState.DECO_FONT,
-				fill: '#00ffff'
-			}).setOrigin(0.5);
+		if (gameState.highComboReached || gameState.highLevelReached || gameState.highScoreReached) {
 			this.makeParticles();
+			if (gameState.highScoreReached) {
+				this.add.text(gameState.CENTER_X, gameState.CENTER_Y / 2, `You got a High Score!`, {
+					font: gameState.DECO_FONT,
+					fill: '#00ffff'
+				}).setOrigin(0.5);
+			} 
+			if (gameState.highComboReached) {
+				this.add.text(gameState.CENTER_X, gameState.CENTER_Y / 2 + 24, `You got the Highest Combo!`, {
+					font: gameState.DECO_FONT,
+					fill: '#00ffff'
+				}).setOrigin(0.5);
+			} 
+			if (gameState.highLevelReached) {
+				this.add.text(gameState.CENTER_X, gameState.CENTER_Y / 2 + 48, `You reached the Highest Level!`, {
+					font: gameState.DECO_FONT,
+					fill: '#00ffff'
+				}).setOrigin(0.5);
+			}
 		} else {
 			this.add.text(gameState.CENTER_X, gameState.CENTER_Y / 2, `Game Over`, {
 				font: gameState.DECO_FONT,
@@ -41,12 +55,22 @@ class GameOverScene extends Phaser.Scene {
             font: gameState.INFO_FONT,
             fill: '#ffffff'
         }).setOrigin(0.5);
+		
 		// High Score Data
 		this.add.text(gameState.CENTER_X / 2, gameState.CENTER_Y + 24, `HI SCORE: ${localStorage.getItem(gameState.LS_HISCORE_KEY)}`, {
             font: gameState.INFO_FONT,
             fill: '#ffffff'
         }).setOrigin(0.5);
 		this.add.text(3 * gameState.CENTER_X / 2, gameState.CENTER_Y + 24, `HI LEVEL: ${localStorage.getItem(gameState.LS_HILEVEL_KEY)}`, {
+            font: gameState.INFO_FONT,
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+		// Highest combo data
+		this.add.text(gameState.CENTER_X, gameState.CENTER_Y + 72, `COMBO: ${gameState.bestCombo}`, {
+            font: gameState.INFO_FONT,
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+		this.add.text(gameState.CENTER_X, gameState.CENTER_Y + 96, `HI COMBO: ${localStorage.getItem(gameState.LS_HICOMBO_KEY)}`, {
             font: gameState.INFO_FONT,
             fill: '#ffffff'
         }).setOrigin(0.5);
